@@ -1,0 +1,31 @@
+name: Build Piano Sampler (macOS)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Sign (ad-hoc) and package
+        run: |
+          VST3=$(find build -name "Piano Sampler.vst3" -maxdepth 6 | head -n 1)
+          echo "Found: $VST3"
+          codesign --force --deep -s - "$VST3"
+          mkdir -p out
+          ditto -c -k --keepParent "$VST3" "out/Piano-Sampler-vst3.zip"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Piano-Sampler-vst3
+          path: out/Piano-Sampler-vst3.zip
